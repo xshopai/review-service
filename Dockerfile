@@ -88,9 +88,9 @@ ENTRYPOINT ["dumb-init", "--"]
 CMD ["npm", "start"]
 
 # Labels for better image management and security scanning
-LABEL maintainer="AIOutlet Team"
+LABEL maintainer="xShop.ai Team"
 LABEL service="review-service"
 LABEL version="1.0.0"
 LABEL org.opencontainers.image.source="https://github.com/aioutlet/aioutlet"
-LABEL org.opencontainers.image.description="Review Service for AIOutlet platform"
-LABEL org.opencontainers.image.vendor="AIOutlet"
+LABEL org.opencontainers.image.description="Review Service for xShop.ai platform"
+LABEL org.opencontainers.image.vendor="xShop.ai"
