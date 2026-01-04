@@ -116,7 +116,7 @@ class DaprSecretManager {
     const algorithm = process.env.JWT_ALGORITHM || 'HS256';
     const expiration = parseInt(process.env.JWT_EXPIRATION || '3600', 10);
     const issuer = process.env.JWT_ISSUER || 'auth-service';
-    const audience = process.env.JWT_AUDIENCE || 'aioutlet-platform';
+    const audience = process.env.JWT_AUDIENCE || 'xshopai-platform';
 
     return {
       secret,
