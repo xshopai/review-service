@@ -36,7 +36,7 @@ npm install
 cp .env.example .env
 
 # Edit .env - update these values:
-# MONGODB_URI=mongodb://admin:admin123@localhost:27020/aioutlet_reviews?authSource=admin
+# MONGODB_URI=mongodb://admin:admin123@localhost:27020/xshopai_reviews?authSource=admin
 # REDIS_URL=redis://localhost:6379
 # RABBITMQ_URL=amqp://localhost:5672
 ```
@@ -103,12 +103,12 @@ HOST=0.0.0.0
 
 # Database
 # Option 1: Direct MongoDB URI (recommended)
-MONGODB_URI=mongodb://admin:admin123@localhost:27020/aioutlet_reviews?authSource=admin
+MONGODB_URI=mongodb://admin:admin123@localhost:27020/xshopai_reviews?authSource=admin
 
 # Option 2: Individual variables (fallback if MONGODB_URI not set)
 # MONGO_INITDB_ROOT_USERNAME=admin
 # MONGO_INITDB_ROOT_PASSWORD=admin123
-# MONGO_INITDB_DATABASE=aioutlet_reviews
+# MONGO_INITDB_DATABASE=xshopai_reviews
 # MONGODB_HOST=localhost
 # MONGODB_PORT=27020
 # MONGODB_AUTH_SOURCE=admin

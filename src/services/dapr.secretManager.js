@@ -95,7 +95,7 @@ class DaprSecretManager {
       port: parseInt(port || '27017', 10),
       username: username || null,
       password: password || null,
-      database: database || 'aioutlet_reviews',
+      database: database || 'xshopai_reviews',
       authSource: authSource || 'admin',
     };
   }
