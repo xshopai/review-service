@@ -1,6 +1,6 @@
 # ⭐ Review Service
 
-Product review and rating microservice for xshop.ai - manages customer reviews, ratings, moderation, helpfulness voting, and real-time analytics.
+Product review and rating microservice for xshopai - manages customer reviews, ratings, moderation, helpfulness voting, and real-time analytics.
 
 ## 🚀 Quick Start
 
