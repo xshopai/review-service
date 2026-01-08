@@ -8,7 +8,7 @@ export const info = (req, res) => {
   res.json({
     service: config.serviceName,
     version: config.serviceVersion,
-    description: 'AI Outlet Review and Rating Service',
+    description: 'xshopai Review and Rating Service',
     environment: config.env,
     timestamp: new Date().toISOString(),
     endpoints: {

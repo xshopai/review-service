@@ -1,7 +1,7 @@
 {
   "name": "review-service",
   "version": "1.0.0",
-  "description": "AI Outlet Review and Rating Service",
+  "description": "xshopai Review and Rating Service",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "microservice",
     "nodejs"
   ],
-  "author": "AI Outlet Team",
+  "author": "xshopai Team",
   "license": "MIT",
   "dependencies": {
     "@dapr/dapr": "^3.6.1",
