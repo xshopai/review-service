@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "start": "dapr run --app-id review-service --app-port 1010 --dapr-http-port 3510 --dapr-grpc-port 50010 --log-level warn --config ./.dapr/config.yaml --resources-path ./.dapr/components -- node src/server.js",
+    "start": "node src/server.js",
+    "start:dapr": "dapr run --app-id review-service --app-port 1010 --dapr-http-port 3510 --dapr-grpc-port 50010 --log-level warn --config ./.dapr/config.yaml --resources-path ./.dapr/components -- node src/server.js",
     "dev": "dapr run --app-id review-service --app-port 1010 --dapr-http-port 3510 --dapr-grpc-port 50010 --log-level warn --config ./.dapr/config.yaml --resources-path ./.dapr/components -- nodemon src/server.js",
     "debug": "dapr run --app-id review-service --app-port 1010 --dapr-http-port 3510 --dapr-grpc-port 50010 --log-level warn --config ./.dapr/config.yaml --resources-path ./.dapr/components -- node --inspect=9229 src/server.js",
     "test": "node --experimental-vm-modules --no-warnings node_modules/jest/bin/jest.js --runInBand",
