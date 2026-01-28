@@ -65,7 +65,7 @@ describe('Review-Product Service Event Integration', () => {
       const publishedEvent = publishedEvents[0];
 
       // Verify pub/sub name and topic
-      expect(publishedEvent.pubsubName).toBe('review-pubsub');
+      expect(publishedEvent.pubsubName).toBe('pubsub');
       expect(publishedEvent.topic).toBe('review-events'); // Updated to match new schema
 
       // Verify CloudEvents structure

@@ -15,9 +15,10 @@ const config = {
     corsOrigin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
   },
   dapr: {
-    httpPort: process.env.DAPR_HTTP_PORT || '3501',
+    httpPort: process.env.DAPR_HTTP_PORT || '3500',
+    grpcPort: process.env.DAPR_GRPC_PORT || '50001',
     host: process.env.DAPR_HOST || 'localhost',
-    pubsubName: process.env.DAPR_PUBSUB_NAME || 'review-pubsub',
+    pubsubName: 'pubsub',
     appId: process.env.DAPR_APP_ID || 'review-service',
   },
   upload: {

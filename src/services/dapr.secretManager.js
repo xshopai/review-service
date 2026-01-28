@@ -11,9 +11,9 @@ class DaprSecretManager {
   constructor() {
     this.environment = config.env;
     this.daprHost = process.env.DAPR_HOST || '127.0.0.1';
-    this.daprPort = process.env.DAPR_HTTP_PORT || '3501';
+    this.daprPort = process.env.DAPR_HTTP_PORT || '3500';
 
-    this.secretStoreName = 'secret-store';
+    this.secretStoreName = 'secretstore';
 
     this.client = new DaprClient({
       daprHost: this.daprHost,

@@ -15,6 +15,7 @@ Product review and rating microservice for xshopai - manages customer reviews, r
 ### Setup
 
 **1. Start Dependencies**
+
 ```bash
 # Using Docker (recommended)
 docker run -d --name review-mongodb -p 27020:27017 mongo:8
@@ -24,6 +25,7 @@ docker run -d --name review-redis -p 6379:6379 redis:7-alpine
 ```
 
 **2. Clone & Install**
+
 ```bash
 git clone https://github.com/xshopai/review-service.git
 cd review-service
@@ -31,6 +33,7 @@ npm install
 ```
 
 **3. Configure Environment**
+
 ```bash
 # Copy environment template
 cp .env.example .env
@@ -42,12 +45,14 @@ cp .env.example .env
 ```
 
 **4. Initialize Dapr**
+
 ```bash
 # First time only
 dapr init
 ```
 
 **5. Run Service**
+
 ```bash
 # Start with Dapr (recommended)
 npm run dev
@@ -58,6 +63,7 @@ npm run dev
 ```
 
 **6. Verify**
+
 ```bash
 # Check health
 curl http://localhost:9001/health
@@ -83,11 +89,11 @@ npm start
 
 ## 📚 Documentation
 
-| Document | Description |
-|----------|-------------|
+| Document                                      | Description                             |
+| --------------------------------------------- | --------------------------------------- |
 | [📖 Developer Guide](docs/DEVELOPER_GUIDE.md) | Local setup, debugging, daily workflows |
-| [📘 Technical Reference](docs/TECHNICAL.md) | Architecture, security, monitoring |
-| [🤝 Contributing](docs/CONTRIBUTING.md) | Contribution guidelines and workflow |
+| [📘 Technical Reference](docs/TECHNICAL.md)   | Architecture, security, monitoring      |
+| [🤝 Contributing](docs/CONTRIBUTING.md)       | Contribution guidelines and workflow    |
 
 **API Documentation**: See `src/routes/` for endpoint definitions and `tests/integration/` for API contract examples.
 
@@ -132,8 +138,8 @@ RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 
 # Dapr
-DAPR_HTTP_PORT=3509              # Dapr sidecar HTTP port
-DAPR_GRPC_PORT=50009             # Dapr sidecar gRPC port
+DAPR_HTTP_PORT=3500              # Dapr sidecar HTTP port
+DAPR_GRPC_PORT=50001             # Dapr sidecar gRPC port
 ```
 
 See [.env.example](.env.example) for complete configuration options.
