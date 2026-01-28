@@ -14,7 +14,7 @@ import axios from 'axios';
 import mongoose from 'mongoose';
 import { setTimeout } from 'timers/promises'; // Configuration
 const REVIEW_SERVICE_PORT = 9001;
-const REVIEW_DAPR_HTTP_PORT = 3501;
+const REVIEW_DAPR_HTTP_PORT = 3500;
 const PRODUCT_SERVICE_PORT = 8003;
 const PRODUCT_DAPR_HTTP_PORT = 3500;
 const MONGODB_REVIEW_URI = 'mongodb://localhost:27020/review_service_test';
@@ -156,7 +156,7 @@ describe('Review-Product Event Flow E2E Test', () => {
       PRODUCT_DAPR_HTTP_PORT,
       50001,
       ['python', '-m', 'uvicorn', 'main:app', '--host', '0.0.0.0', '--port', PRODUCT_SERVICE_PORT.toString()],
-      productServicePath
+      productServicePath,
     );
 
     // Wait for product service to be ready
@@ -170,7 +170,7 @@ describe('Review-Product Event Flow E2E Test', () => {
       REVIEW_DAPR_HTTP_PORT,
       50002,
       ['npm', 'run', 'dev'],
-      reviewServicePath
+      reviewServicePath,
     );
 
     // Wait for review service to be ready
