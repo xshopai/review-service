@@ -329,7 +329,7 @@ else
         --registry-username "$ACR_NAME" \
         --registry-password "$ACR_PASSWORD" \
         --target-port $APP_PORT \
-        --ingress internal \
+        --ingress external \
         --min-replicas 1 \
         --max-replicas 10 \
         --cpu 0.5 \
