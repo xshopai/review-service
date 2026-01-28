@@ -104,7 +104,7 @@ else
             "MONGODB_URI=secretref:mongodb-uri" \
             "MONGODB_DB_NAME=review-service-db" \
             "REDIS_URL=secretref:redis-url" \
-            "DAPR_HTTP_PORT=3500" \
+            "DAPR_HTTP_PORT=3510" \
             "PUBSUB_NAME=xshopai-pubsub" \
         --output none
 fi
