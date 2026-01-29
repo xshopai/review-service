@@ -99,13 +99,13 @@ az containerapp create \
   --dapr-app-port $APP_PORT \
   --secrets \
     "cosmos-conn=$COSMOS_CONN" \
-    "redis-url=$REDIS_URL" \
+    "redis-password=$REDIS_PASSWORD" \
   --env-vars \
     "PORT=$APP_PORT" \
     "NODE_ENV=production" \
     "MONGODB_URI=secretref:cosmos-conn" \
     "MONGODB_DATABASE=$DATABASE_NAME" \
-    "REDIS_URL=secretref:redis-url" \
+    "REDIS_PASSWORD=secretref:redis-password" \
     "LOG_LEVEL=info"
 ```
 
@@ -113,13 +113,13 @@ az containerapp create \
 
 ### Environment Variables
 
-| Variable           | Description               |
-| ------------------ | ------------------------- |
-| `PORT`             | HTTP server port          |
-| `NODE_ENV`         | Node environment          |
-| `MONGODB_URI`      | MongoDB connection string |
-| `MONGODB_DATABASE` | Database name             |
-| `REDIS_URL`        | Redis connection URL      |
+| Variable           | Description                 |
+| ------------------ | --------------------------- |
+| `PORT`             | HTTP server port            |
+| `NODE_ENV`         | Node environment            |
+| `MONGODB_URI`      | Cosmos DB connection string |
+| `MONGODB_DATABASE` | Database name               |
+| `REDIS_PASSWORD`   | Redis cache password        |
 
 ## API Endpoints
 

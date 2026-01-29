@@ -103,16 +103,15 @@ SERVICE_DIR="$(dirname "$SCRIPT_DIR")"
 # ============================================================================
 echo -e "${CYAN}Available Environments:${NC}"
 echo "   dev     - Development environment"
-echo "   staging - Staging/QA environment"
 echo "   prod    - Production environment"
 echo ""
 
-read -p "Enter environment (dev/staging/prod) [dev]: " ENVIRONMENT
+read -p "Enter environment (dev/prod) [dev]: " ENVIRONMENT
 ENVIRONMENT="${ENVIRONMENT:-dev}"
 
-if [[ ! "$ENVIRONMENT" =~ ^(dev|staging|prod)$ ]]; then
+if [[ ! "$ENVIRONMENT" =~ ^(dev|prod)$ ]]; then
     print_error "Invalid environment: $ENVIRONMENT"
-    echo "   Valid values: dev, staging, prod"
+    echo "   Valid values: dev, prod"
     exit 1
 fi
 print_success "Environment: $ENVIRONMENT"
@@ -122,10 +121,6 @@ case "$ENVIRONMENT" in
     dev)
         NODE_ENV="development"
         LOG_LEVEL="debug"
-        ;;
-    staging)
-        NODE_ENV="staging"
-        LOG_LEVEL="info"
         ;;
     prod)
         NODE_ENV="production"
@@ -169,10 +164,14 @@ KEY_VAULT="kv-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
 MANAGED_IDENTITY="id-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
 COSMOS_ACCOUNT="cosmos-${PROJECT_NAME}-${ENVIRONMENT}-${SUFFIX}"
 
+# Container App name follows convention: ca-{service}-{env}-{suffix}
+CONTAINER_APP_NAME="ca-${SERVICE_NAME}-${ENVIRONMENT}-${SUFFIX}"
+
 print_info "Derived resource names:"
 echo "   Resource Group:      $RESOURCE_GROUP"
 echo "   Container Registry:  $ACR_NAME"
 echo "   Container Env:       $CONTAINER_ENV"
+echo "   Container App:       $CONTAINER_APP_NAME"
 echo "   Cosmos DB:           $COSMOS_ACCOUNT"
 echo ""
 
@@ -221,7 +220,7 @@ fi
 print_header "Database Configuration"
 
 print_info "Retrieving Cosmos DB connection string from Key Vault..."
-MONGODB_URI=$(az keyvault secret show --vault-name "$KEY_VAULT" --name "cosmos-connection" --query value -o tsv 2>/dev/null || echo "")
+MONGODB_URI=$(az keyvault secret show --vault-name "$KEY_VAULT" --name "xshopai-cosmos-account-connection" --query value -o tsv 2>/dev/null || echo "")
 
 if [ -z "$MONGODB_URI" ]; then
     print_warning "Cosmos DB connection string not found in Key Vault, retrieving directly..."
@@ -299,10 +298,10 @@ print_header "Step 2: Deploying Container App"
 ACR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" -o tsv)
 
 # Check if container app exists
-if az containerapp show --name "$SERVICE_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
-    print_info "Container app '$SERVICE_NAME' exists, updating..."
+if az containerapp show --name "$CONTAINER_APP_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null; then
+    print_info "Container app '$CONTAINER_APP_NAME' exists, updating..."
     az containerapp update \
-        --name "$SERVICE_NAME" \
+        --name "$CONTAINER_APP_NAME" \
         --resource-group "$RESOURCE_GROUP" \
         --image "$IMAGE_TAG" \
         --set-env-vars \
@@ -319,10 +318,11 @@ if az containerapp show --name "$SERVICE_NAME" --resource-group "$RESOURCE_GROUP
         --output none
     print_success "Container app updated"
 else
-    print_info "Creating container app '$SERVICE_NAME'..."
+    print_info "Creating container app '$CONTAINER_APP_NAME'..."
     
     MSYS_NO_PATHCONV=1 az containerapp create \
-        --name "$SERVICE_NAME" \
+        --name "$CONTAINER_APP_NAME" \
+        --container-name "$SERVICE_NAME" \
         --resource-group "$RESOURCE_GROUP" \
         --environment "$CONTAINER_ENV" \
         --image "$IMAGE_TAG" \
@@ -364,7 +364,7 @@ fi
 print_header "Step 3: Verifying Deployment"
 
 # For internal ingress, we can't directly access the app, so just check it exists
-APP_INFO=$(az containerapp show --name "$SERVICE_NAME" --resource-group "$RESOURCE_GROUP" --query "{fqdn:properties.configuration.ingress.fqdn,status:properties.runningStatus}" -o json)
+APP_INFO=$(az containerapp show --name "$CONTAINER_APP_NAME" --resource-group "$RESOURCE_GROUP" --query "{fqdn:properties.configuration.ingress.fqdn,status:properties.runningStatus}" -o json)
 print_success "Container app deployed"
 echo "$APP_INFO"
 
@@ -384,11 +384,11 @@ echo "   Registry:         $ACR_LOGIN_SERVER"
 echo ""
 echo -e "${CYAN}Service Details:${NC}"
 echo "   Dapr App ID:      $SERVICE_NAME"
-echo "   Ingress:          internal (accessible via Dapr service invocation)"
+echo "   Ingress:          external (publicly accessible)"
 echo "   Database:         review_service_db (Cosmos DB MongoDB API)"
 echo ""
 echo -e "${CYAN}Useful Commands:${NC}"
-echo -e "   View logs:        ${BLUE}az containerapp logs show --name $SERVICE_NAME --resource-group $RESOURCE_GROUP --follow${NC}"
-echo -e "   View Dapr logs:   ${BLUE}az containerapp logs show --name $SERVICE_NAME --resource-group $RESOURCE_GROUP --container daprd --follow${NC}"
-echo -e "   Delete app:       ${BLUE}az containerapp delete --name $SERVICE_NAME --resource-group $RESOURCE_GROUP --yes${NC}"
+echo -e "   View logs:        ${BLUE}az containerapp logs show --name $CONTAINER_APP_NAME --resource-group $RESOURCE_GROUP --follow${NC}"
+echo -e "   View Dapr logs:   ${BLUE}az containerapp logs show --name $CONTAINER_APP_NAME --resource-group $RESOURCE_GROUP --container daprd --follow${NC}"
+echo -e "   Delete app:       ${BLUE}az containerapp delete --name $CONTAINER_APP_NAME --resource-group $RESOURCE_GROUP --yes${NC}"
 echo ""

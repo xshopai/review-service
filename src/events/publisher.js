@@ -1,39 +1,44 @@
 /**
- * Dapr Event Publisher for Review Service
- * Publishes events via Dapr pub/sub component
+ * Event Publisher for Review Service
+ * Publishes events via messaging abstraction layer
+ *
+ * Uses the messaging factory pattern to support multiple providers:
+ * - Dapr (default) - for Azure Container Apps, AKS, local Docker Compose
+ * - RabbitMQ - for direct integration without Dapr
+ * - Azure Service Bus - for Azure App Service deployments
+ *
+ * Provider is selected via MESSAGING_PROVIDER environment variable.
  */
 
-import { DaprClient, CommunicationProtocolEnum } from '@dapr/dapr';
 import config from '../core/config.js';
 import { logger } from '../core/logger.js';
+import { getMessagingProvider } from '../messaging/index.js';
 
-class DaprEventPublisher {
+class EventPublisher {
   constructor() {
     this.serviceName = config.serviceName;
-    this.pubsubName = 'pubsub';
-    this.daprHost = process.env.DAPR_HOST || '127.0.0.1';
-    this.daprPort = process.env.DAPR_HTTP_PORT || '3500';
-    this.client = null;
+    this.provider = null;
   }
 
   /**
-   * Initialize Dapr client
+   * Initialize messaging provider
    */
   initialize() {
-    this.client = new DaprClient({
-      daprHost: this.daprHost,
-      daprPort: this.daprPort,
-      communicationProtocol: CommunicationProtocolEnum.HTTP,
-    });
-    logger.info('Dapr Event Publisher initialized', {
-      pubsubName: this.pubsubName,
-      daprHost: this.daprHost,
-      daprPort: this.daprPort,
-    });
+    try {
+      this.provider = getMessagingProvider();
+      logger.info('Event Publisher initialized', {
+        serviceName: this.serviceName,
+        provider: process.env.MESSAGING_PROVIDER || 'dapr',
+      });
+    } catch (error) {
+      logger.error('Failed to initialize Event Publisher', {
+        error: error.message,
+      });
+    }
   }
 
   /**
-   * Publish an event via Dapr pub/sub with W3C Trace Context
+   * Publish an event via messaging provider with W3C Trace Context
    * @param {string} topic - Pub/sub topic
    * @param {string} eventType - CloudEvent type
    * @param {Object} data - Event data
@@ -41,8 +46,8 @@ class DaprEventPublisher {
    * @param {string} spanId - W3C span ID (16 hex chars, optional - will generate if missing)
    */
   async publishEvent(topic, eventType, data, traceId = null, spanId = null) {
-    if (!this.client) {
-      logger.warn('Dapr client not initialized. Skipping event publish.', {
+    if (!this.provider) {
+      logger.warn('Messaging provider not initialized. Skipping event publish.', {
         eventType,
         topic,
       });
@@ -73,18 +78,19 @@ class DaprEventPublisher {
       cloudEvent.traceparent = traceparent;
     }
 
-    await this.client.pubsub.publish(this.pubsubName, topic, cloudEvent);
+    const success = await this.provider.publishEvent(topic, cloudEvent, traceId);
 
-    const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
-    log.info(`Event published: ${eventType}`, {
-      topic,
-      eventType,
-      pubsubName: this.pubsubName,
-      dataSize: JSON.stringify(data).length,
-      hasTraceContext: !!traceparent,
-    });
+    if (success) {
+      const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
+      log.info(`Event published: ${eventType}`, {
+        topic,
+        eventType,
+        dataSize: JSON.stringify(data).length,
+        hasTraceContext: !!traceparent,
+      });
+    }
 
-    return true;
+    return success;
   }
 
   /**
@@ -134,22 +140,24 @@ class DaprEventPublisher {
       cloudEvent.traceparent = traceparent;
     }
 
-    if (!this.client) {
-      logger.warn('Dapr client not initialized. Skipping review.created event.', {
+    if (!this.provider) {
+      logger.warn('Messaging provider not initialized. Skipping review.created event.', {
         reviewId: eventData.reviewId,
       });
       return false;
     }
 
-    await this.client.pubsub.publish(this.pubsubName, 'review-events', cloudEvent);
+    const success = await this.provider.publishEvent('review-events', cloudEvent, traceId);
 
-    const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
-    log.info('Review created event published', {
-      reviewId: eventData.reviewId,
-      productId: eventData.productId,
-    });
+    if (success) {
+      const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
+      log.info('Review created event published', {
+        reviewId: eventData.reviewId,
+        productId: eventData.productId,
+      });
+    }
 
-    return true;
+    return success;
   }
 
   /**
@@ -198,24 +206,26 @@ class DaprEventPublisher {
       cloudEvent.traceparent = traceparent;
     }
 
-    if (!this.client) {
-      logger.warn('Dapr client not initialized. Skipping review.updated event.', {
+    if (!this.provider) {
+      logger.warn('Messaging provider not initialized. Skipping review.updated event.', {
         reviewId: eventData.reviewId,
       });
       return false;
     }
 
-    await this.client.pubsub.publish(this.pubsubName, 'review-events', cloudEvent);
+    const success = await this.provider.publishEvent('review-events', cloudEvent, traceId);
 
-    const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
-    log.info('Review updated event published', {
-      reviewId: eventData.reviewId,
-      productId: eventData.productId,
-      previousRating,
-      newRating: eventData.rating,
-    });
+    if (success) {
+      const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
+      log.info('Review updated event published', {
+        reviewId: eventData.reviewId,
+        productId: eventData.productId,
+        previousRating,
+        newRating: eventData.rating,
+      });
+    }
 
-    return true;
+    return success;
   }
 
   /**
@@ -259,36 +269,39 @@ class DaprEventPublisher {
       cloudEvent.traceparent = traceparent;
     }
 
-    if (!this.client) {
-      logger.warn('Dapr client not initialized. Skipping review.deleted event.', {
+    if (!this.provider) {
+      logger.warn('Messaging provider not initialized. Skipping review.deleted event.', {
         reviewId: eventData.reviewId,
       });
       return false;
     }
 
-    await this.client.pubsub.publish(this.pubsubName, 'review-events', cloudEvent);
+    const success = await this.provider.publishEvent('review-events', cloudEvent, traceId);
 
-    const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
-    log.info('Review deleted event published', {
-      reviewId: eventData.reviewId,
-      productId: eventData.productId,
-    });
+    if (success) {
+      const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
+      log.info('Review deleted event published', {
+        reviewId: eventData.reviewId,
+        productId: eventData.productId,
+      });
+    }
 
-    return true;
+    return success;
   }
 
   /**
-   * Close Dapr client
+   * Close messaging provider
    */
   async close() {
-    if (this.client) {
-      logger.info('Closing Dapr Event Publisher');
-      this.client = null;
+    if (this.provider) {
+      logger.info('Closing Event Publisher');
+      await this.provider.close();
+      this.provider = null;
     }
   }
 }
 
 // Export singleton instance
-const eventPublisher = new DaprEventPublisher();
+const eventPublisher = new EventPublisher();
 
 export default eventPublisher;
