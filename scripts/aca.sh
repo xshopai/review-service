@@ -258,8 +258,9 @@ echo -e "   Dapr HTTP Port:    $DAPR_HTTP_PORT"
 echo -e "   Dapr gRPC Port:    $DAPR_GRPC_PORT"
 echo ""
 
-read -p "Do you want to proceed with deployment? (y/N): " CONFIRM
-if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
+read -p "Do you want to proceed with deployment? (Y/n): " CONFIRM
+CONFIRM=${CONFIRM:-Y}
+if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
     print_warning "Deployment cancelled by user"
     exit 0
 fi
@@ -314,7 +315,7 @@ if az containerapp show --name "$CONTAINER_APP_NAME" --resource-group "$RESOURCE
             "DAPR_HTTP_PORT=$DAPR_HTTP_PORT" \
             "DAPR_GRPC_PORT=$DAPR_GRPC_PORT" \
             "DAPR_APP_ID=$SERVICE_NAME" \
-            "PUBSUB_NAME=xshopai-pubsub" \
+            "DAPR_PUBSUB_NAME=$DAPR_PUBSUB_NAME" \
         --output none
     print_success "Container app updated"
 else
@@ -349,7 +350,7 @@ else
             "DAPR_HTTP_PORT=$DAPR_HTTP_PORT" \
             "DAPR_GRPC_PORT=$DAPR_GRPC_PORT" \
             "DAPR_APP_ID=$SERVICE_NAME" \
-            "PUBSUB_NAME=xshopai-pubsub" \
+            "DAPR_PUBSUB_NAME=$DAPR_PUBSUB_NAME" \
             "MONGODB_URI=secretref:mongodb-uri" \
             "MONGODB_DB_NAME=review_service_db" \
         ${IDENTITY_ID:+--user-assigned "$IDENTITY_ID"} \
