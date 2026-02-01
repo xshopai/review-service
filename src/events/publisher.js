@@ -147,11 +147,12 @@ class EventPublisher {
       return false;
     }
 
-    const success = await this.provider.publishEvent('review-events', cloudEvent, traceId);
+    const success = await this.provider.publishEvent('review.created', cloudEvent, traceId);
 
     if (success) {
       const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
       log.info('Review created event published', {
+        topic: 'review.created',
         reviewId: eventData.reviewId,
         productId: eventData.productId,
       });
@@ -213,11 +214,12 @@ class EventPublisher {
       return false;
     }
 
-    const success = await this.provider.publishEvent('review-events', cloudEvent, traceId);
+    const success = await this.provider.publishEvent('review.updated', cloudEvent, traceId);
 
     if (success) {
       const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
       log.info('Review updated event published', {
+        topic: 'review.updated',
         reviewId: eventData.reviewId,
         productId: eventData.productId,
         previousRating,
@@ -276,11 +278,12 @@ class EventPublisher {
       return false;
     }
 
-    const success = await this.provider.publishEvent('review-events', cloudEvent, traceId);
+    const success = await this.provider.publishEvent('review.deleted', cloudEvent, traceId);
 
     if (success) {
       const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
       log.info('Review deleted event published', {
+        topic: 'review.deleted',
         reviewId: eventData.reviewId,
         productId: eventData.productId,
       });
