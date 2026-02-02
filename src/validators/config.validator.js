@@ -25,10 +25,10 @@ const validationRules = {
     },
     errorMessage: 'PORT must be a valid port number (1-65535)',
   },
-  NAME: {
+  SERVICE_NAME: {
     required: true,
     validator: (value) => value && value.length > 0,
-    errorMessage: 'NAME must be a non-empty string',
+    errorMessage: 'SERVICE_NAME must be a non-empty string',
   },
   VERSION: {
     required: true,
@@ -39,21 +39,6 @@ const validationRules = {
     required: false,
     validator: (value) => !value || (Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 65535),
     errorMessage: 'DAPR_HTTP_PORT must be a valid port number (1-65535)',
-  },
-  DAPR_HOST: {
-    required: false,
-    validator: (value) => !value || (typeof value === 'string' && value.length > 0),
-    errorMessage: 'DAPR_HOST must be a non-empty string',
-  },
-  DAPR_PUBSUB_NAME: {
-    required: false,
-    validator: (value) => !value || (typeof value === 'string' && value.length > 0),
-    errorMessage: 'DAPR_PUBSUB_NAME must be a non-empty string',
-  },
-  DAPR_APP_ID: {
-    required: false,
-    validator: (value) => !value || (typeof value === 'string' && value.length > 0),
-    errorMessage: 'DAPR_APP_ID must be a non-empty string',
   },
   LOG_LEVEL: {
     required: false,

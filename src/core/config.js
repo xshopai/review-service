@@ -3,11 +3,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const config = {
-  serviceName: process.env.NAME || 'review-service',
+  serviceName: process.env.SERVICE_NAME || 'review-service',
   serviceVersion: process.env.VERSION || '1.0.0',
   env: process.env.NODE_ENV || 'development',
   server: {
-    port: process.env.PORT || 9001,
+    port: process.env.PORT || 8010,
     host: process.env.HOST || '0.0.0.0',
   },
   security: {
@@ -17,9 +17,7 @@ const config = {
   dapr: {
     httpPort: process.env.DAPR_HTTP_PORT || '3500',
     grpcPort: process.env.DAPR_GRPC_PORT || '50001',
-    host: process.env.DAPR_HOST || 'localhost',
     pubsubName: 'pubsub',
-    appId: process.env.DAPR_APP_ID || 'review-service',
   },
   upload: {
     maxFileSize: process.env.MAX_FILE_SIZE || '10MB',
