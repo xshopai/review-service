@@ -1,0 +1,36 @@
+# Review Service - MongoDB Only
+# For local development: run only MongoDB, run app locally with Dapr
+#
+# Usage:
+#   docker-compose -f docker-compose.db.yml up -d
+#
+# Port: 27020
+# Database: review_service_db
+# User: admin
+# Password: admin123
+
+version: '3.8'
+
+services:
+  review-mongodb:
+    image: mongo:latest
+    container_name: review-mongodb
+    restart: unless-stopped
+    ports:
+      - "27020:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: review_service_db
+    volumes:
+      - review_mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  review_mongodb_data:
+    name: review_mongodb_data
