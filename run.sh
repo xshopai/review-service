@@ -1,6 +1,6 @@
 #!/bin/bash
-# Run Review Service with Dapr sidecar
-# Usage: ./run.sh
+
+# Review Service - Run with Dapr
 
 echo "Starting Review Service with Dapr..."
 echo "Service will be available at: http://localhost:8010"
@@ -13,7 +13,8 @@ dapr run \
   --app-port 8010 \
   --dapr-http-port 3510 \
   --dapr-grpc-port 50010 \
-  --resources-path .dapr/components \
-  --config .dapr/config.yaml \
-  --log-level warn \
-  -- npm run start
+  --log-level info \
+  --config ./.dapr/config.yaml \
+  --resources-path ./.dapr/components \
+  -- node src/server.js
+
