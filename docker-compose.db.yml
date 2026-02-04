@@ -9,7 +9,7 @@
 # User: admin
 # Password: admin123
 
-version: '3.8'
+version: "3.8"
 
 services:
   review-mongodb:
