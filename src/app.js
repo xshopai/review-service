@@ -20,7 +20,7 @@ app.use(
   cors({
     origin: config.security.corsOrigin,
     credentials: true,
-  })
+  }),
 );
 
 app.use(traceContextMiddleware);
