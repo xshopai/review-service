@@ -23,9 +23,9 @@ class EventPublisher {
   /**
    * Initialize messaging provider
    */
-  initialize() {
+  async initialize() {
     try {
-      this.provider = getMessagingProvider();
+      this.provider = await getMessagingProvider();
       logger.info('Event Publisher initialized', {
         serviceName: this.serviceName,
         provider: process.env.MESSAGING_PROVIDER || 'dapr',

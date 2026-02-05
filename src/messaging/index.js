@@ -15,7 +15,5 @@
  */
 
 export { default as MessagingProvider } from './provider.js';
-export { default as DaprProvider } from './daprProvider.js';
-export { default as RabbitMQProvider } from './rabbitmqProvider.js';
-export { default as ServiceBusProvider } from './servicebusProvider.js';
+// Lazy exports - providers loaded on-demand by factory
 export { createMessagingProvider, getMessagingProvider, closeMessagingProvider } from './factory.js';

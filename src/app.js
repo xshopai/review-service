@@ -32,7 +32,7 @@ await connectDB();
 
 // Initialize event publisher for Dapr pub/sub
 try {
-  eventPublisher.initialize();
+  await eventPublisher.initialize();
   logger.info('Event publisher initialized successfully');
 } catch (error) {
   logger.warn('Failed to initialize event publisher. Events will not be published.', {

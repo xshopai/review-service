@@ -6,9 +6,6 @@
  * Enables deployment flexibility across Azure hosting options.
  */
 
-import DaprProvider from './daprProvider.js';
-import RabbitMQProvider from './rabbitmqProvider.js';
-import ServiceBusProvider from './servicebusProvider.js';
 import { logger } from '../core/logger.js';
 
 /**
@@ -30,10 +27,10 @@ let messagingProvider = null;
  * - For ServiceBusProvider: SERVICEBUS_CONNECTION_STRING, SERVICEBUS_TOPIC_NAME
  *
  * @param {Object} [options] - Optional configuration to override env vars
- * @returns {import('./provider.js').default} Configured provider instance
+ * @returns {Promise<import('./provider.js').default>} Configured provider instance
  * @throws {Error} If provider type is invalid or required config is missing
  */
-export function createMessagingProvider(options = {}) {
+export async function createMessagingProvider(options = {}) {
   // Get provider type from environment, default to Dapr
   const providerType = (options.provider || process.env.MESSAGING_PROVIDER || 'dapr').toLowerCase();
 
@@ -42,16 +39,22 @@ export function createMessagingProvider(options = {}) {
     providerType,
   });
 
-  // Select provider based on configuration
+  // Lazy import providers - only loads the SDK that's actually needed
   switch (providerType) {
-    case 'dapr':
+    case 'dapr': {
+      const { default: DaprProvider } = await import('./daprProvider.js');
       return new DaprProvider(options);
+    }
 
-    case 'rabbitmq':
+    case 'rabbitmq': {
+      const { default: RabbitMQProvider } = await import('./rabbitmqProvider.js');
       return new RabbitMQProvider(options);
+    }
 
-    case 'servicebus':
+    case 'servicebus': {
+      const { default: ServiceBusProvider } = await import('./servicebusProvider.js');
       return new ServiceBusProvider(options);
+    }
 
     default:
       throw new Error(`Invalid MESSAGING_PROVIDER: ${providerType}. ` + `Must be 'dapr', 'rabbitmq', or 'servicebus'`);
@@ -62,11 +65,11 @@ export function createMessagingProvider(options = {}) {
  * Get the singleton messaging provider instance.
  * Creates a new instance on first call using environment configuration.
  *
- * @returns {import('./provider.js').default} Messaging provider instance
+ * @returns {Promise<import('./provider.js').default>} Messaging provider instance
  */
-export function getMessagingProvider() {
+export async function getMessagingProvider() {
   if (!messagingProvider) {
-    messagingProvider = createMessagingProvider();
+    messagingProvider = await createMessagingProvider();
   }
   return messagingProvider;
 }
