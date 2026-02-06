@@ -42,7 +42,7 @@ EXPOSE ${PORT:-8010}
 
 # Health check (using Node.js to avoid curl dependency)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || '8010') + '/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+    CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || '8010') + '/health/live', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 # Use dumb-init and start development server
 ENTRYPOINT ["dumb-init", "--"]
