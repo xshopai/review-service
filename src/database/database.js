@@ -1,32 +1,12 @@
 import mongoose from 'mongoose';
 import { logger } from '../core/logger.js';
-import { secretManager } from '../services/dapr.secretManager.js';
 
 const connectDB = async () => {
   try {
-    let mongodb_uri;
-
-    // Try Dapr secret store first (works in both local and Azure)
-    try {
-      mongodb_uri = await secretManager.getSecret('MONGODB_URI');
-      if (mongodb_uri) {
-        logger.info('Using MONGODB_URI from Dapr secret store');
-      }
-    } catch (error) {
-      logger.debug('MONGODB_URI not found in Dapr secret store');
-    }
-
-    // Fall back to environment variable (for ACA env var injection or non-Dapr runs)
-    if (!mongodb_uri && process.env.MONGODB_URI) {
-      mongodb_uri = process.env.MONGODB_URI;
-      logger.info('Using MONGODB_URI from environment variable');
-    }
+    let mongodb_uri = process.env.MONGODB_URI;
 
     if (!mongodb_uri) {
-      throw new Error(
-        'MongoDB connection string not found. ' +
-          'Set MONGODB_URI in Dapr secret store (.dapr/secrets.json) or as env var.',
-      );
+      throw new Error('MongoDB connection string not found. Set MONGODB_URI environment variable.');
     }
 
     // Force IPv4 by replacing 'localhost' with '127.0.0.1'

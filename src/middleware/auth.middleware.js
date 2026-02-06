@@ -2,19 +2,14 @@ import jwt from 'jsonwebtoken';
 import config from '../core/config.js';
 import { logger } from '../core/logger.js';
 import ErrorResponse from '../core/errors.js';
-import { secretManager } from '../services/dapr.secretManager.js';
 
-// Cache JWT config to avoid fetching on every request
-let jwtConfig = null;
-
-/**
- * Get JWT configuration (cached)
- */
-const getJwtConfig = async () => {
-  if (!jwtConfig) {
-    jwtConfig = await secretManager.getJwtConfig();
-  }
-  return jwtConfig;
+// Get JWT config from environment variables (no Dapr dependency)
+const getJwtConfig = () => {
+  return {
+    secret: process.env.JWT_SECRET,
+    issuer: process.env.JWT_ISSUER || 'xshopai-auth-service',
+    audience: process.env.JWT_AUDIENCE || 'xshopai-services',
+  };
 };
 
 /**
@@ -41,10 +36,10 @@ export const verifyToken = async (req, res, next) => {
       throw new ErrorResponse('Token missing', 401);
     }
 
-    const jwtCfg = await getJwtConfig();
+    const jwtCfg = getJwtConfig();
     const decoded = jwt.verify(token, jwtCfg.secret, {
       issuer: jwtCfg.issuer,
-      audience: jwtCfg.audience
+      audience: jwtCfg.audience,
     });
 
     // Add user information to request
@@ -115,10 +110,10 @@ export const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    const jwtCfg = await getJwtConfig();
+    const jwtCfg = getJwtConfig();
     const decoded = jwt.verify(token, jwtCfg.secret, {
       issuer: jwtCfg.issuer,
-      audience: jwtCfg.audience
+      audience: jwtCfg.audience,
     });
 
     req.user = {
@@ -290,7 +285,7 @@ export const extractUserId = async (req, res, next) => {
           const jwtCfg = await getJwtConfig();
           const decoded = jwt.verify(token, jwtCfg.secret, {
             issuer: jwtCfg.issuer,
-            audience: jwtCfg.audience
+            audience: jwtCfg.audience,
           });
           req.userId = decoded.userId || decoded.sub;
         } catch (error) {
