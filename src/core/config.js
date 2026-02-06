@@ -11,7 +11,7 @@ const config = {
     host: process.env.HOST || '0.0.0.0',
   },
   security: {
-    // For JWT secret, use: await getJwtConfig() from dapr.secretManager
+    // JWT_SECRET is loaded from environment variables
     corsOrigin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
   },
   dapr: {
