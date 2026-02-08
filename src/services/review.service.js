@@ -33,7 +33,7 @@ class ReviewService {
         reviewData.productId,
         reviewData.orderReference,
         traceId,
-        spanId
+        spanId,
       );
     }
 
@@ -147,9 +147,9 @@ class ReviewService {
     const skip = (page - 1) * limit;
 
     // Compute rating aggregates for this product (using all approved reviews, not filtered)
-    const aggregateFilter = { 
+    const aggregateFilter = {
       productId: new mongoose.Types.ObjectId(productId),
-      status: 'approved' 
+      status: 'approved',
     };
 
     const [reviews, total, ratingAggregates] = await Promise.all([
@@ -162,17 +162,17 @@ class ReviewService {
             _id: null,
             averageRating: { $avg: '$rating' },
             totalReviews: { $sum: 1 },
-            verifiedCount: { 
-              $sum: { $cond: ['$isVerifiedPurchase', 1, 0] } 
+            verifiedCount: {
+              $sum: { $cond: ['$isVerifiedPurchase', 1, 0] },
             },
             rating1: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } },
             rating2: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
             rating3: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
             rating4: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
             rating5: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
-          }
-        }
-      ])
+          },
+        },
+      ]),
     ]);
 
     // Format rating aggregates
@@ -187,7 +187,7 @@ class ReviewService {
         3: agg.rating3 || 0,
         4: agg.rating4 || 0,
         5: agg.rating5 || 0,
-      }
+      },
     };
 
     // Add virtual fields
@@ -450,7 +450,7 @@ class ReviewService {
         `api/products/internal/${productId}/exists`,
         'GET',
         null,
-        { traceparent: traceparent }
+        { traceparent: traceparent },
       );
 
       if (!response.exists) {
@@ -478,7 +478,7 @@ class ReviewService {
         'api/v1/internal/orders/validate-purchase',
         'POST',
         { userId, productId, orderReference },
-        { traceparent: traceparent }
+        { traceparent: traceparent },
       );
       return response.isValid || false;
     } catch (error) {
@@ -595,7 +595,7 @@ class ReviewService {
     } else {
       const updateResult = await Review.updateMany(
         { productId },
-        { $set: { status: 'hidden', updatedAt: new Date() } }
+        { $set: { status: 'hidden', updatedAt: new Date() } },
       );
       return {
         action: 'soft_deleted',
