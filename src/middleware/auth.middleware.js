@@ -7,8 +7,8 @@ import ErrorResponse from '../core/errors.js';
 const getJwtConfig = () => {
   return {
     secret: process.env.JWT_SECRET,
-    issuer: process.env.JWT_ISSUER || 'xshopai-auth-service',
-    audience: process.env.JWT_AUDIENCE || 'xshopai-services',
+    issuer: process.env.JWT_ISSUER || 'auth-service',
+    audience: process.env.JWT_AUDIENCE || 'xshopai-platform',
   };
 };
 

@@ -161,9 +161,9 @@ LOG_LEVEL="debug"
 # Retrieve secrets from Key Vault
 print_info "Retrieving secrets from Key Vault..."
 
-# Application Insights
-APP_INSIGHTS_CONN=$(az keyvault secret show --vault-name "$KEY_VAULT" --name "appinsights-connection" --query "value" -o tsv 2>/dev/null || echo "")
-[ -n "$APP_INSIGHTS_CONN" ] && print_success "  appinsights-connection: retrieved" || print_warning "  appinsights-connection: not configured (telemetry disabled)"
+# Per-service Application Insights (each service has its own App Insights resource)
+APP_INSIGHTS_CONN=$(az keyvault secret show --vault-name "$KEY_VAULT" --name "appinsights-review-service" --query "value" -o tsv 2>/dev/null || echo "")
+[ -n "$APP_INSIGHTS_CONN" ] && print_success "  appinsights-review-service: retrieved" || print_warning "  appinsights-review-service: not configured (telemetry disabled)"
 
 # JWT secret
 JWT_SECRET=$(az keyvault secret show --vault-name "$KEY_VAULT" --name "jwt-secret" --query "value" -o tsv 2>/dev/null || echo "")

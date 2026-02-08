@@ -146,10 +146,49 @@ class ReviewService {
 
     const skip = (page - 1) * limit;
 
-    const [reviews, total] = await Promise.all([
+    // Compute rating aggregates for this product (using all approved reviews, not filtered)
+    const aggregateFilter = { 
+      productId: new mongoose.Types.ObjectId(productId),
+      status: 'approved' 
+    };
+
+    const [reviews, total, ratingAggregates] = await Promise.all([
       Review.find(filter).sort(sort).skip(skip).limit(limit).select('-__v -helpfulVotes.userVotes').lean(),
       Review.countDocuments(filter),
+      Review.aggregate([
+        { $match: aggregateFilter },
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: '$rating' },
+            totalReviews: { $sum: 1 },
+            verifiedCount: { 
+              $sum: { $cond: ['$isVerifiedPurchase', 1, 0] } 
+            },
+            rating1: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } },
+            rating2: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
+            rating3: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
+            rating4: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
+            rating5: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
+          }
+        }
+      ])
     ]);
+
+    // Format rating aggregates
+    const agg = ratingAggregates[0] || {};
+    const ratingDetails = {
+      averageRating: agg.averageRating ? Math.round(agg.averageRating * 10) / 10 : 0,
+      totalReviews: agg.totalReviews || 0,
+      verifiedReviewCount: agg.verifiedCount || 0,
+      ratingDistribution: {
+        1: agg.rating1 || 0,
+        2: agg.rating2 || 0,
+        3: agg.rating3 || 0,
+        4: agg.rating4 || 0,
+        5: agg.rating5 || 0,
+      }
+    };
 
     // Add virtual fields
     const enrichedReviews = reviews.map((review) => ({
@@ -161,6 +200,7 @@ class ReviewService {
 
     return {
       reviews: enrichedReviews,
+      ratingDetails,
       pagination: {
         page: Number(page),
         limit: Number(limit),
