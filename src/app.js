@@ -51,9 +51,10 @@ app.use(errorHandler);
 
 const PORT = parseInt(process.env.PORT, 10) || 9001;
 const HOST = process.env.HOST || '0.0.0.0';
+const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
 
 app.listen(PORT, HOST, () => {
-  logger.info(`Review service running on ${HOST}:${PORT} in ${process.env.NODE_ENV} mode`);
+  logger.info(`Review service running on ${displayHost}:${PORT} in ${process.env.NODE_ENV} mode`);
 });
 
 // Graceful shutdown
