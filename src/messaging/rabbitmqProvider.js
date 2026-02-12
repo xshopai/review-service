@@ -22,12 +22,12 @@ class RabbitMQProvider extends MessagingProvider {
    *
    * @param {Object} options - Configuration options
    * @param {string} options.url - RabbitMQ connection URL
-   * @param {string} [options.exchange='events'] - Exchange name for event publishing
+   * @param {string} [options.exchange='xshopai.events'] - Exchange name for event publishing
    */
   constructor(options = {}) {
     super();
     this.url = options.url || process.env.RABBITMQ_URL || 'amqp://localhost:5672';
-    this.exchange = options.exchange || process.env.RABBITMQ_EXCHANGE || 'events';
+    this.exchange = options.exchange || process.env.RABBITMQ_EXCHANGE || 'xshopai.events';
     this.connection = null;
     this.channel = null;
     this._connectionPromise = null;
