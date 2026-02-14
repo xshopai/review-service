@@ -21,6 +21,15 @@ class EventPublisher {
   }
 
   /**
+   * Get the underlying client for service invocation (Dapr client)
+   * Used for inter-service communication via Dapr service invocation
+   * @returns {Object|null} The messaging provider's client instance
+   */
+  get client() {
+    return this.provider?.client || null;
+  }
+
+  /**
    * Initialize messaging provider
    */
   async initialize() {

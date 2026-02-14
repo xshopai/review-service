@@ -443,6 +443,15 @@ class ReviewService {
    * Validate product exists via Dapr
    */
   async validateProduct(productId, traceId, spanId) {
+    // Service invocation only works with Dapr provider
+    if (!eventPublisher.client?.invoker) {
+      const log = logger.withTraceContext(traceId, spanId);
+      log.warn('Dapr client not available for product validation, skipping check', {
+        productId,
+      });
+      return true; // Allow review creation when Dapr is not available
+    }
+
     try {
       const traceparent = `00-${traceId}-${spanId}-01`;
       const response = await eventPublisher.client.invoker.invoke(
@@ -471,6 +480,17 @@ class ReviewService {
    * Validate purchase via Dapr
    */
   async validatePurchase(userId, productId, orderReference, traceId, spanId) {
+    // Service invocation only works with Dapr provider
+    if (!eventPublisher.client?.invoker) {
+      const log = logger.withTraceContext(traceId, spanId);
+      log.warn('Dapr client not available for purchase validation, skipping check', {
+        userId,
+        productId,
+        orderReference,
+      });
+      return false; // Cannot verify purchase without Dapr
+    }
+
     try {
       const traceparent = `00-${traceId}-${spanId}-01`;
       const response = await eventPublisher.client.invoker.invoke(
