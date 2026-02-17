@@ -302,6 +302,75 @@ class EventPublisher {
   }
 
   /**
+   * Publish review.approved event with W3C Trace Context
+   * This event is sent when an admin approves a previously pending review
+   * @param {Object} review - Review document
+   * @param {string} traceId - W3C trace ID
+   * @param {string} spanId - W3C span ID
+   */
+  async publishReviewApproved(review, traceId = null, spanId = null) {
+    const eventData = {
+      reviewId: review._id?.toString() || review.reviewId,
+      productId: review.productId?.toString() || review.productId,
+      userId: review.userId?.toString() || review.userId,
+      username: review.username,
+      rating: review.rating,
+      title: review.title || '',
+      comment: review.comment || '',
+      isVerifiedPurchase: review.isVerifiedPurchase || false,
+      status: 'approved',
+      moderatedBy: review.metadata?.moderatedBy || null,
+      moderatedAt: review.metadata?.moderatedAt?.toISOString() || new Date().toISOString(),
+    };
+
+    const metadata = {
+      userId: eventData.userId,
+      moderatedBy: eventData.moderatedBy,
+    };
+
+    // Generate span ID if not provided
+    const eventSpanId = spanId || Math.random().toString(16).substring(2, 18).padEnd(16, '0');
+    const traceparent = traceId ? `00-${traceId}-${eventSpanId}-01` : null;
+
+    const cloudEvent = {
+      specversion: '1.0',
+      type: 'review.approved',
+      source: this.serviceName,
+      id: `review-approved-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      time: new Date().toISOString(),
+      datacontenttype: 'application/json',
+      data: eventData,
+      metadata: metadata,
+    };
+
+    // Add W3C traceparent header
+    if (traceparent) {
+      cloudEvent.traceparent = traceparent;
+    }
+
+    if (!this.provider) {
+      logger.warn('Messaging provider not initialized. Skipping review.approved event.', {
+        reviewId: eventData.reviewId,
+      });
+      return false;
+    }
+
+    const success = await this.provider.publishEvent('review.approved', cloudEvent, traceId);
+
+    if (success) {
+      const log = traceId && spanId ? logger.withTraceContext(traceId, spanId) : logger;
+      log.info('Review approved event published', {
+        topic: 'review.approved',
+        reviewId: eventData.reviewId,
+        productId: eventData.productId,
+        moderatedBy: eventData.moderatedBy,
+      });
+    }
+
+    return success;
+  }
+
+  /**
    * Close messaging provider
    */
   async close() {

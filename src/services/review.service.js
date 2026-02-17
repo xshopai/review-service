@@ -12,6 +12,9 @@ class ReviewService {
   async createReview(reviewData, user, traceId, spanId) {
     const log = logger.withTraceContext(traceId, spanId);
 
+    // Validate user can create reviews (admin users cannot create reviews)
+    this.validateUserCanCreateReview(user, log);
+
     // Check if user already reviewed this product
     const existingReview = await Review.findOne({
       productId: reviewData.productId,
@@ -25,7 +28,7 @@ class ReviewService {
     // Validate product exists
     await this.validateProduct(reviewData.productId, traceId, spanId);
 
-    // Validate purchase if order reference provided
+    // Validate purchase - either optional (for verified badge) or required
     let isVerifiedPurchase = false;
     if (reviewData.orderReference) {
       isVerifiedPurchase = await this.validatePurchase(
@@ -34,6 +37,20 @@ class ReviewService {
         reviewData.orderReference,
         traceId,
         spanId,
+      );
+    }
+
+    // If purchase is required and user hasn't purchased, reject the review
+    if (config.review?.requirePurchase && !isVerifiedPurchase) {
+      log.warn('Review rejected - purchase required but not verified', {
+        userId: user.userId,
+        productId: reviewData.productId,
+        orderReference: reviewData.orderReference || 'not provided',
+      });
+      throw new ErrorResponse(
+        'You must purchase this product before writing a review. Please provide a valid order reference.',
+        403,
+        'PURCHASE_REQUIRED',
       );
     }
 
@@ -622,6 +639,224 @@ class ReviewService {
         count: updateResult.modifiedCount,
       };
     }
+  }
+
+  /**
+   * Validate that user can create reviews
+   * - Admin users cannot create reviews (conflict of interest)
+   * - User must have a non-admin role (customer role implied)
+   * @param {Object} user - User object from JWT
+   * @param {Object} log - Logger with trace context
+   * @throws {ErrorResponse} If user is not allowed to create reviews
+   */
+  validateUserCanCreateReview(user, log) {
+    // Check if user is admin - admins cannot create reviews
+    const roles = user.roles || [];
+    const isAdmin = roles.includes('admin') || user.isAdmin;
+
+    if (isAdmin) {
+      log.warn('Admin user attempted to create review', {
+        userId: user.userId,
+        roles: roles,
+      });
+      throw new ErrorResponse(
+        'Administrators cannot create product reviews to avoid conflict of interest',
+        403,
+        'ADMIN_CANNOT_REVIEW',
+      );
+    }
+
+    // Check if user is active (if status is provided in JWT)
+    if (user.isActive === false) {
+      log.warn('Inactive user attempted to create review', {
+        userId: user.userId,
+      });
+      throw new ErrorResponse('Your account is not active. Please contact support.', 403, 'USER_INACTIVE');
+    }
+
+    return true;
+  }
+
+  /**
+   * Admin: Approve a review
+   * @param {String} reviewId - Review ID
+   * @param {Object} adminUser - Admin user object
+   * @param {String} traceId - Trace ID
+   * @param {String} spanId - Span ID
+   */
+  async approveReview(reviewId, adminUser, traceId, spanId) {
+    const log = logger.withTraceContext(traceId, spanId);
+
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      throw new ErrorResponse('Review not found', 404);
+    }
+
+    if (review.status === 'approved') {
+      throw new ErrorResponse('Review is already approved', 400);
+    }
+
+    review.status = 'approved';
+    review.updatedBy = adminUser.userId;
+    review.metadata = {
+      ...review.metadata,
+      moderatedAt: new Date(),
+      moderatedBy: adminUser.userId,
+    };
+
+    const updatedReview = await review.save();
+
+    // Publish event for approved review
+    try {
+      await eventPublisher.publishReviewApproved(updatedReview, traceId, spanId);
+      log.info('Review approved and event published', {
+        reviewId: updatedReview._id,
+        productId: updatedReview.productId,
+        moderatedBy: adminUser.userId,
+      });
+    } catch (eventError) {
+      log.error('Failed to publish review.approved event', {
+        error: eventError.message,
+        reviewId: updatedReview._id,
+      });
+    }
+
+    return updatedReview;
+  }
+
+  /**
+   * Admin: Reject a review
+   * @param {String} reviewId - Review ID
+   * @param {Object} adminUser - Admin user object
+   * @param {String} reason - Rejection reason
+   * @param {String} traceId - Trace ID
+   * @param {String} spanId - Span ID
+   */
+  async rejectReview(reviewId, adminUser, reason, traceId, spanId) {
+    const log = logger.withTraceContext(traceId, spanId);
+
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      throw new ErrorResponse('Review not found', 404);
+    }
+
+    if (review.status === 'rejected') {
+      throw new ErrorResponse('Review is already rejected', 400);
+    }
+
+    review.status = 'rejected';
+    review.updatedBy = adminUser.userId;
+    review.metadata = {
+      ...review.metadata,
+      moderatedAt: new Date(),
+      moderatedBy: adminUser.userId,
+      rejectionReason: reason,
+    };
+
+    const updatedReview = await review.save();
+
+    log.info('Review rejected', {
+      reviewId: updatedReview._id,
+      productId: updatedReview.productId,
+      moderatedBy: adminUser.userId,
+      reason: reason,
+    });
+
+    return updatedReview;
+  }
+
+  /**
+   * Admin: Hide a review (soft delete)
+   * @param {String} reviewId - Review ID
+   * @param {Object} adminUser - Admin user object
+   * @param {String} reason - Hide reason
+   * @param {String} traceId - Trace ID
+   * @param {String} spanId - Span ID
+   */
+  async hideReview(reviewId, adminUser, reason, traceId, spanId) {
+    const log = logger.withTraceContext(traceId, spanId);
+
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      throw new ErrorResponse('Review not found', 404);
+    }
+
+    if (review.status === 'hidden') {
+      throw new ErrorResponse('Review is already hidden', 400);
+    }
+
+    review.status = 'hidden';
+    review.updatedBy = adminUser.userId;
+    review.metadata = {
+      ...review.metadata,
+      hiddenAt: new Date(),
+      hiddenBy: adminUser.userId,
+      hideReason: reason,
+    };
+
+    const updatedReview = await review.save();
+
+    log.info('Review hidden', {
+      reviewId: updatedReview._id,
+      productId: updatedReview.productId,
+      hiddenBy: adminUser.userId,
+      reason: reason,
+    });
+
+    return updatedReview;
+  }
+
+  /**
+   * Admin: Bulk moderate reviews
+   * @param {Array} reviewIds - Array of review IDs
+   * @param {String} action - Action to perform (approve, reject, hide)
+   * @param {Object} adminUser - Admin user object
+   * @param {String} reason - Reason for moderation (required for reject/hide)
+   * @param {String} traceId - Trace ID
+   * @param {String} spanId - Span ID
+   */
+  async bulkModerateReviews(reviewIds, action, adminUser, reason, traceId, spanId) {
+    const log = logger.withTraceContext(traceId, spanId);
+
+    if (!['approve', 'reject', 'hide'].includes(action)) {
+      throw new ErrorResponse('Invalid moderation action. Must be: approve, reject, or hide', 400);
+    }
+
+    if ((action === 'reject' || action === 'hide') && !reason) {
+      throw new ErrorResponse(`Reason is required for ${action} action`, 400);
+    }
+
+    const statusMap = {
+      approve: 'approved',
+      reject: 'rejected',
+      hide: 'hidden',
+    };
+
+    const updateData = {
+      status: statusMap[action],
+      updatedBy: adminUser.userId,
+      'metadata.moderatedAt': new Date(),
+      'metadata.moderatedBy': adminUser.userId,
+    };
+
+    if (reason) {
+      updateData[action === 'reject' ? 'metadata.rejectionReason' : 'metadata.hideReason'] = reason;
+    }
+
+    const result = await Review.updateMany({ _id: { $in: reviewIds } }, { $set: updateData });
+
+    log.info('Bulk moderation completed', {
+      action: action,
+      reviewIds: reviewIds,
+      modifiedCount: result.modifiedCount,
+      moderatedBy: adminUser.userId,
+    });
+
+    return {
+      action: action,
+      modifiedCount: result.modifiedCount,
+      reviewIds: reviewIds,
+    };
   }
 }
 

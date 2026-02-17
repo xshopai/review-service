@@ -142,12 +142,98 @@ export const getAllReviews = asyncHandler(async (req, res) => {
       sortOrder,
     },
     req.traceId,
-    req.spanId
+    req.spanId,
   );
 
   res.status(200).json({
     success: true,
     data: reviews.data,
     pagination: reviews.pagination,
+  });
+});
+
+/**
+ * Admin: Approve a review
+ */
+export const approveReview = asyncHandler(async (req, res) => {
+  const { reviewId } = req.params;
+  const review = await reviewService.approveReview(reviewId, req.user, req.traceId, req.spanId);
+  res.status(200).json({
+    success: true,
+    message: 'Review approved successfully',
+    data: { review },
+  });
+});
+
+/**
+ * Admin: Reject a review
+ */
+export const rejectReview = asyncHandler(async (req, res) => {
+  const { reviewId } = req.params;
+  const { reason } = req.body;
+
+  if (!reason) {
+    return res.status(400).json({
+      success: false,
+      message: 'Rejection reason is required',
+    });
+  }
+
+  const review = await reviewService.rejectReview(reviewId, req.user, reason, req.traceId, req.spanId);
+  res.status(200).json({
+    success: true,
+    message: 'Review rejected successfully',
+    data: { review },
+  });
+});
+
+/**
+ * Admin: Hide a review
+ */
+export const hideReview = asyncHandler(async (req, res) => {
+  const { reviewId } = req.params;
+  const { reason } = req.body;
+
+  if (!reason) {
+    return res.status(400).json({
+      success: false,
+      message: 'Hide reason is required',
+    });
+  }
+
+  const review = await reviewService.hideReview(reviewId, req.user, reason, req.traceId, req.spanId);
+  res.status(200).json({
+    success: true,
+    message: 'Review hidden successfully',
+    data: { review },
+  });
+});
+
+/**
+ * Admin: Bulk moderate reviews
+ */
+export const bulkModerateReviews = asyncHandler(async (req, res) => {
+  const { reviewIds, action, reason } = req.body;
+
+  if (!reviewIds || !Array.isArray(reviewIds) || reviewIds.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'reviewIds array is required',
+    });
+  }
+
+  if (!action || !['approve', 'reject', 'hide'].includes(action)) {
+    return res.status(400).json({
+      success: false,
+      message: 'action must be one of: approve, reject, hide',
+    });
+  }
+
+  const result = await reviewService.bulkModerateReviews(reviewIds, action, req.user, reason, req.traceId, req.spanId);
+
+  res.status(200).json({
+    success: true,
+    message: `Successfully ${action}d ${result.modifiedCount} reviews`,
+    data: result,
   });
 });
