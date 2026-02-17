@@ -129,9 +129,9 @@ JWT_SECRET=your-jwt-secret
 CORS_ORIGIN=http://localhost:3000
 
 # External Services
-USER_SERVICE_URL=http://localhost:3001
-PRODUCT_SERVICE_URL=http://localhost:3002
-ORDER_SERVICE_URL=http://localhost:3003
+USER_SERVICE_URL=http://localhost:8002
+PRODUCT_SERVICE_URL=http://localhost:8001
+ORDER_SERVICE_URL=http://localhost:8006
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
