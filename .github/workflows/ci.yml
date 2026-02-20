@@ -27,7 +27,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   SERVICE_NAME: review-service
   # ACR_NAME: xshopai
   # ACR_LOGIN_SERVER: xshopai.azurecr.io
