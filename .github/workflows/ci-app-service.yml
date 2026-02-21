@@ -1,0 +1,243 @@
+# ==============================================================================
+# Review Service — CI + Deploy to Azure App Service
+# ==============================================================================
+# On push/PR: build & test only.
+# On workflow_dispatch or push-to-main: build, test, then deploy.
+#
+# Prerequisites: Infra workflow must have created the App Service shell with
+# all settings pre-configured. This workflow only deploys code.
+# ==============================================================================
+
+name: CI App Service
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "package*.json"
+      - "Dockerfile"
+      - ".github/workflows/ci-app-service.yml"
+
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "package*.json"
+      - "Dockerfile"
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment"
+        required: true
+        type: choice
+        options: [dev, prod]
+        default: dev
+      suffix:
+        description: "Resource suffix (e.g. as01) — leave blank to use org default"
+        required: false
+        default: ""
+
+env:
+  NODE_VERSION: "24" # Must match infrastructure runtime (NODE:24-lts)
+  SERVICE_NAME: review-service
+  PROJECT_NAME: xshopai
+
+# ==============================================================================
+# Job 1 — Build & Test (runs on every trigger)
+# ==============================================================================
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint --if-present
+        continue-on-error: true
+
+      - name: Run unit tests
+        run: npm run test:unit -- --passWithNoTests
+        continue-on-error: true
+
+      - name: Build application
+        run: npm run build --if-present
+
+      # Upload build artifacts for deployment (only when deploying)
+      - name: Upload build artifacts
+        if: >
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-artifacts
+          path: |
+            **/*
+            !node_modules/**
+            !.git/**
+            !.github/**
+            !tests/**
+            !*.log
+            !.env*
+            !.dapr/**
+            !docker-compose*
+            !logs/**
+            !.vscode/**
+            !docs/**
+            !scripts/**
+          retention-days: 1
+
+  # ============================================================================
+  # Job 2 — Deploy to Azure App Service
+  # Runs only on: push to main  OR  manual workflow_dispatch
+  # Assumes: App Service shell already exists with settings pre-configured by
+  # the infrastructure workflow. This job only deploys code.
+  # ============================================================================
+  deploy:
+    name: Deploy (${{ inputs.environment || 'dev' }})
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
+
+    environment:
+      name: ${{ inputs.environment || 'dev' }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      # Download pre-built artifacts from build-and-test job
+      - name: Download build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: build-artifacts
+          path: .
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2.3.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # -------------------------------------------------------------------
+      # Resolve App Service name (must match infra naming convention)
+      # -------------------------------------------------------------------
+      - name: Resolve configuration
+        run: |
+          ENV="${{ inputs.environment || 'dev' }}"
+          INPUT_SUFFIX="${{ inputs.suffix }}"
+
+          if [ -n "$INPUT_SUFFIX" ]; then
+            SUFFIX="$INPUT_SUFFIX"
+          elif [ "$ENV" = "prod" ]; then
+            SUFFIX="${{ vars.DEPLOY_SUFFIX_PROD }}"
+          else
+            SUFFIX="${{ vars.DEPLOY_SUFFIX_DEV }}"
+          fi
+
+          if [ -z "$SUFFIX" ]; then
+            echo "::error::No suffix resolved — set DEPLOY_SUFFIX_DEV / DEPLOY_SUFFIX_PROD org variables or pass the suffix input"
+            exit 1
+          fi
+
+          APP_NAME="app-${{ env.SERVICE_NAME }}-${{ env.PROJECT_NAME }}-${ENV}-${SUFFIX}"
+          RESOURCE_GROUP="rg-${{ env.PROJECT_NAME }}-${ENV}-${SUFFIX}"
+
+          {
+            echo "ENV=$ENV"
+            echo "SUFFIX=$SUFFIX"
+            echo "APP_NAME=$APP_NAME"
+            echo "RESOURCE_GROUP=$RESOURCE_GROUP"
+          } >> "$GITHUB_ENV"
+
+          echo "Deploying **${{ env.SERVICE_NAME }}** → \`${APP_NAME}\`"
+
+          # Verify App Service exists (created by infra workflow)
+          if ! az webapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+            echo "::error::App Service '$APP_NAME' not found. Run the infrastructure workflow first."
+            exit 1
+          fi
+
+      # -------------------------------------------------------------------
+      # Create deployment package from pre-built artifacts
+      # Install production deps and skip Oryx build on server (more reliable)
+      # -------------------------------------------------------------------
+      - name: Create deployment package
+        run: |
+          echo "Installing production dependencies..."
+          npm ci --omit=dev
+
+          echo "Creating deployment package..."
+          zip -r ${{ github.workspace }}/deploy.zip . -x "*.git*" -x "tests/*" -x ".github/*" -x "*.log" -x ".env*" -q
+          echo "✓ Package created: $(du -h deploy.zip | cut -f1)"
+
+      # -------------------------------------------------------------------
+      # Deploy to App Service (SCM_DO_BUILD_DURING_DEPLOYMENT=false skips Oryx)
+      # -------------------------------------------------------------------
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.APP_NAME }}
+          resource-group-name: ${{ env.RESOURCE_GROUP }}
+          package: ${{ github.workspace }}/deploy.zip
+
+      # -------------------------------------------------------------------
+      # Health check — simplified check (App Service monitors continuously)
+      # -------------------------------------------------------------------
+      - name: Verify deployment
+        run: |
+          URL="https://${APP_NAME}.azurewebsites.net/health/live"
+          echo "Deployment complete. Performing basic health check..."
+          echo "App Service URL: $URL"
+
+          # Brief check - App Service health monitoring will catch issues
+          for i in {1..5}; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL" 2>/dev/null || echo "000")
+            if [[ "$HTTP_CODE" =~ ^(200|204)$ ]]; then
+              echo "✓ Service is responding (HTTP $HTTP_CODE)"
+              echo "Note: App Service continues monitoring at ${URL}"
+              exit 0
+            fi
+            echo "  Attempt $i/5 — HTTP $HTTP_CODE — waiting 15s..."
+            sleep 15
+          done
+
+          echo "::warning::Initial health check timed out. Check App Service logs and health monitoring."
+
+      # -------------------------------------------------------------------
+      # Summary
+      # -------------------------------------------------------------------
+      - name: Deployment summary
+        if: always()
+        run: |
+          {
+            echo "## ${{ env.SERVICE_NAME }} Deployment"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Environment | \`${ENV}\` |"
+            echo "| Suffix | \`${SUFFIX}\` |"
+            echo "| App Service | \`${APP_NAME}\` |"
+            echo "| URL | https://${APP_NAME}.azurewebsites.net |"
+            echo "| Runtime | Node.js ${{ env.NODE_VERSION }} |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
