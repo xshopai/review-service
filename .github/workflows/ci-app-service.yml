@@ -159,8 +159,10 @@ jobs:
             exit 1
           fi
 
-          APP_NAME="app-${{ env.SERVICE_NAME }}-${{ env.PROJECT_NAME }}-${ENV}-${SUFFIX}"
-          RESOURCE_GROUP="rg-${{ env.PROJECT_NAME }}-${ENV}-${SUFFIX}"
+          # Infrastructure naming: app-{service}-{project}-{suffix}
+          # Note: suffix already includes environment context (e.g., "development" for dev)
+          APP_NAME="app-${{ env.SERVICE_NAME }}-${{ env.PROJECT_NAME }}-${SUFFIX}"
+          RESOURCE_GROUP="rg-${{ env.PROJECT_NAME }}-${SUFFIX}"
 
           {
             echo "ENV=$ENV"
