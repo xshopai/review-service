@@ -6,6 +6,10 @@ const config = {
   serviceName: process.env.SERVICE_NAME || 'review-service',
   serviceVersion: process.env.VERSION || '1.0.0',
   env: process.env.NODE_ENV || 'development',
+  
+  // Service Invocation Mode (for consistency with other services)
+  serviceInvocationMode: process.env.SERVICE_INVOCATION_MODE || 'http',
+  
   server: {
     port: process.env.PORT || 8010,
     host: process.env.HOST || '0.0.0.0',
