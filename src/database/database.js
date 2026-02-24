@@ -21,15 +21,40 @@ const connectDB = async () => {
     // Set strictQuery to false to prepare for Mongoose 7
     mongoose.set('strictQuery', false);
 
-    // Connect to MongoDB with connection options
-    const conn = await mongoose.connect(mongodb_uri, {
+    // Check if this is Azure Cosmos DB
+    const isCosmosDB = mongodb_uri.includes('cosmos.azure.com') || mongodb_uri.includes(':10255');
+
+    // Connection options
+    const connectionOptions = {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: isCosmosDB ? 30000 : 5000,
       socketTimeoutMS: 45000,
       family: 4, // Force IPv4
-    });
+    };
+
+    // Add TLS options for Cosmos DB
+    if (isCosmosDB) {
+      connectionOptions.tls = true;
+      connectionOptions.retryWrites = false;
+      logger.info('Using Cosmos DB connection settings (TLS enabled)');
+    }
+
+    // Connect to MongoDB with connection options
+    const conn = await mongoose.connect(mongodb_uri, connectionOptions);
 
     logger.info(`MongoDB connected: ${conn.connection.host}:${conn.connection.port}/${conn.connection.name}`);
+
+    // Ensure indexes are created (required for Cosmos DB MongoDB API)
+    if (isCosmosDB) {
+      try {
+        const Review = (await import('../models/review.model.js')).default;
+        await Review.createIndexes();
+        logger.info('Database indexes synchronized for Cosmos DB');
+      } catch (indexError) {
+        // Log but don't fail - indexes might already exist
+        logger.warn(`Index synchronization warning: ${indexError.message}`);
+      }
+    }
 
     // Handle connection events
     mongoose.connection.on('error', (err) => {

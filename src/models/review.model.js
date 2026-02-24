@@ -171,4 +171,10 @@ reviewSchema.statics.getProductStats = async function (productId) {
   );
 };
 
+// Create indexes for query performance (required for Cosmos DB MongoDB API)
+// createdAt is used for sorting reviews by date
+reviewSchema.index({ createdAt: -1 });
+// Compound index for product reviews sorted by date
+reviewSchema.index({ productId: 1, createdAt: -1 });
+
 export default mongoose.model('Review', reviewSchema);
