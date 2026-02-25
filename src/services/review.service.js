@@ -378,6 +378,7 @@ class ReviewService {
    * Get user's reviews
    */
   async getUserReviews(userId, options, traceId, spanId) {
+    const log = logger.withTraceContext(traceId, spanId);
     const { page = 1, limit = 10, sort = 'newest', status = null } = options;
 
     const filter = { userId };
@@ -402,8 +403,11 @@ class ReviewService {
       Review.countDocuments(filter),
     ]);
 
+    // Enrich reviews with product details (name and image)
+    const enrichedReviews = await this.enrichReviewsWithProductDetails(reviews, traceId, spanId);
+
     return {
-      reviews,
+      reviews: enrichedReviews,
       pagination: {
         page,
         limit,
@@ -411,6 +415,63 @@ class ReviewService {
         pages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * Enrich reviews with product details (name and image)
+   */
+  async enrichReviewsWithProductDetails(reviews, traceId, spanId) {
+    const log = logger.withTraceContext(traceId, spanId);
+
+    if (!reviews || reviews.length === 0) {
+      return reviews;
+    }
+
+    // Extract unique productIds
+    const productIds = [...new Set(reviews.map((r) => r.productId.toString()))];
+
+    // Fetch product details via Dapr service invocation
+    let productMap = {};
+    try {
+      if (eventPublisher.client?.invoker) {
+        const traceparent = `00-${traceId}-${spanId}-01`;
+        const response = await eventPublisher.client.invoker.invoke(
+          'product-service',
+          'api/products/batch',
+          'POST',
+          { product_ids: productIds },
+          { traceparent, 'Content-Type': 'application/json' },
+        );
+
+        if (response?.products) {
+          // Create a map of productId -> product details
+          productMap = response.products.reduce((map, product) => {
+            map[product.id] = {
+              name: product.name,
+              image: product.images && product.images.length > 0 ? product.images[0] : null,
+            };
+            return map;
+          }, {});
+        }
+      } else {
+        log.warn('Dapr client not available for product enrichment', {
+          productIds,
+        });
+      }
+    } catch (error) {
+      log.error('Error fetching product details for review enrichment', {
+        error: error.message,
+        productIds,
+      });
+      // Don't fail - just return reviews without enrichment
+    }
+
+    // Enrich reviews with product data
+    return reviews.map((review) => ({
+      ...review,
+      productName: productMap[review.productId.toString()]?.name || 'Unknown Product',
+      productImage: productMap[review.productId.toString()]?.image || null,
+    }));
   }
 
   /**
