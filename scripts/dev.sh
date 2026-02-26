@@ -13,12 +13,12 @@ for pid in $(netstat -ano 2>/dev/null | grep ":$PORT" | grep LISTENING | awk '{p
     taskkill //F //PID $pid 2>/dev/null
 done
 
-# Copy .env.dev to .env for local development
+# Copy .env.http to .env for local development (HTTP mode, no Dapr)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_DIR="$(dirname "$SCRIPT_DIR")"
-if [ -f "$SERVICE_DIR/.env.dev" ]; then
-    cp "$SERVICE_DIR/.env.dev" "$SERVICE_DIR/.env"
-    echo "✅ Copied .env.dev → .env"
+if [ -f "$SERVICE_DIR/.env.http" ]; then
+    cp "$SERVICE_DIR/.env.http" "$SERVICE_DIR/.env"
+    echo "✅ Copied .env.http → .env"
 fi
 
 # Install dependencies if node_modules doesn't exist
