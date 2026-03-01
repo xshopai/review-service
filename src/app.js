@@ -3,6 +3,7 @@ import cors from 'cors';
 
 import config from './core/config.js';
 import { logger } from './core/logger.js';
+import { register as consulRegister, deregister as consulDeregister } from './core/consulRegistration.js';
 import connectDB from './database/database.js';
 import traceContextMiddleware from './middleware/traceContext.middleware.js';
 import { errorHandler } from './middleware/error.middleware.js';
@@ -53,13 +54,15 @@ const PORT = parseInt(process.env.PORT, 10) || 9001;
 const HOST = process.env.HOST || '0.0.0.0';
 const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
 
-app.listen(PORT, HOST, () => {
+app.listen(PORT, HOST, async () => {
+  await consulRegister('review-service', PORT, HOST);
   logger.info(`Review service running on ${displayHost}:${PORT} in ${process.env.NODE_ENV} mode`);
 });
 
 // Graceful shutdown
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = async (signal) => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
+  await consulDeregister();
   process.exit(0);
 };
 
