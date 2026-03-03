@@ -1,174 +1,322 @@
+<div align="center">
+
 # ⭐ Review Service
 
-Product review and rating microservice for xshopai - manages customer reviews, ratings, moderation, helpfulness voting, and real-time analytics.
+**Product review and rating management microservice for the xshopai e-commerce platform**
 
-## 🚀 Quick Start
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![MongoDB](https://img.shields.io/badge/MongoDB-8.0+-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
+[![Dapr](https://img.shields.io/badge/Dapr-Enabled-0D597F?style=for-the-badge&logo=dapr&logoColor=white)](https://dapr.io)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-### Prerequisites
+[Getting Started](#-getting-started) •
+[Documentation](#-documentation) •
+[API Reference](docs/PRD.md) •
+[Contributing](#-contributing)
 
-- **Node.js** 18+ ([Download](https://nodejs.org/))
-- **MongoDB** 8+ ([Download](https://www.mongodb.com/try/download/community))
-- **Redis** 7+ ([Install Guide](https://redis.io/docs/getting-started/))
-- **RabbitMQ** ([Install Guide](https://www.rabbitmq.com/download.html))
-- **Dapr CLI** 1.16+ ([Install Guide](https://docs.dapr.io/getting-started/install-dapr-cli/))
+</div>
 
-### Setup
+---
 
-**1. Start Dependencies**
+## 🎯 Overview
 
-```bash
-# Using Docker (recommended)
-docker run -d --name review-mongodb -p 27020:27017 mongo:8
-docker run -d --name review-redis -p 6379:6379 redis:7-alpine
+The **Review Service** manages the full lifecycle of customer product reviews — creation, moderation, helpfulness voting, and real-time analytics. Built with Node.js (ESM) and MongoDB, it validates purchases via the order-service, publishes events to RabbitMQ, and integrates with the Dapr service mesh for cross-service communication.
 
-# Or install MongoDB and Redis locally
-```
-
-**2. Clone & Install**
-
-```bash
-git clone https://github.com/xshopai/review-service.git
-cd review-service
-npm install
-```
-
-**3. Configure Environment**
-
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit .env - update these values:
-# MONGODB_URI=mongodb://admin:admin123@localhost:27020/xshopai_reviews?authSource=admin
-# REDIS_URL=redis://localhost:6379
-# RABBITMQ_URL=amqp://localhost:5672
-```
-
-**4. Initialize Dapr**
-
-```bash
-# First time only
-dapr init
-```
-
-**5. Run Service**
-
-```bash
-# Start with Dapr (recommended)
-npm run dev
-
-# Or use platform-specific scripts
-./run.sh       # Linux/Mac
-.\run.ps1      # Windows
-```
-
-**6. Verify**
-
-```bash
-# Check health
-curl http://localhost:9001/health
-
-# Should return: {"status":"UP","service":"review-service"...}
-```
-
-### Common Commands
-
-```bash
-# Run tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-
-# Lint code
-npm run lint
-
-# Production mode
-npm start
-```
-
-## 📚 Documentation
-
-| Document                                      | Description                             |
-| --------------------------------------------- | --------------------------------------- |
-| [📖 Developer Guide](docs/DEVELOPER_GUIDE.md) | Local setup, debugging, daily workflows |
-| [📘 Technical Reference](docs/TECHNICAL.md)   | Architecture, security, monitoring      |
-| [🤝 Contributing](docs/CONTRIBUTING.md)       | Contribution guidelines and workflow    |
-
-**API Documentation**: See `src/routes/` for endpoint definitions and `tests/integration/` for API contract examples.
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-```bash
-# Server Configuration
-NODE_ENV=development
-PORT=9001
-HOST=0.0.0.0
-
-# Database
-# Option 1: Direct MongoDB URI (recommended)
-MONGODB_URI=mongodb://admin:admin123@localhost:27020/xshopai_reviews?authSource=admin
-
-# Option 2: Individual variables (fallback if MONGODB_URI not set)
-# MONGO_INITDB_ROOT_USERNAME=admin
-# MONGO_INITDB_ROOT_PASSWORD=admin123
-# MONGO_INITDB_DATABASE=xshopai_reviews
-# MONGODB_HOST=localhost
-# MONGODB_PORT=27020
-# MONGODB_AUTH_SOURCE=admin
-
-REDIS_URL=redis://localhost:6379
-
-# Message Broker
-RABBITMQ_URL=amqp://localhost:5672
-
-# Security
-JWT_SECRET=your-jwt-secret
-CORS_ORIGIN=http://localhost:3000
-
-# External Services
-USER_SERVICE_URL=http://localhost:8002
-PRODUCT_SERVICE_URL=http://localhost:8001
-ORDER_SERVICE_URL=http://localhost:8006
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-
-# Dapr
-DAPR_HTTP_PORT=3500              # Dapr sidecar HTTP port
-DAPR_GRPC_PORT=50001             # Dapr sidecar gRPC port
-```
-
-See [.env.example](.env.example) for complete configuration options.
+---
 
 ## ✨ Key Features
 
-- Product rating and review system (1-5 stars)
-- Automated content moderation
-- Real-time analytics and aggregations
-- Review helpfulness voting system
+<table>
+<tr>
+<td width="50%">
+
+### ⭐ Review Management
+
+- Product rating and reviews (1–5 stars)
 - Verified purchase validation
-- Advanced filtering and sorting
 - Media attachment support
-- Event-driven architecture with RabbitMQ
-- Redis caching for performance
-- Comprehensive monitoring and health checks
+- Advanced filtering and sorting
 
-## 🔗 Related Services
+</td>
+<td width="50%">
 
-- [product-service](https://github.com/xshopai/product-service) - Product catalog management
-- [order-service](https://github.com/xshopai/order-service) - Order verification for reviews
-- [user-service](https://github.com/xshopai/user-service) - User profile management
+### 🛡️ Moderation & Quality
+
+- Automated content moderation
+- Admin approval/rejection workflows
+- Helpfulness voting system
+- Content policy enforcement
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 📊 Analytics & Aggregation
+
+- Real-time rating aggregations
+- Review statistics per product
+- Trend analysis and reporting
+- Redis-cached performance
+
+</td>
+<td width="50%">
+
+### 📡 Event-Driven Architecture
+
+- RabbitMQ event publishing
+- Dapr pub/sub integration
+- Cross-service review verification
+- OpenTelemetry distributed tracing
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- MongoDB 8.0+
+- Docker & Docker Compose (optional)
+- Dapr CLI (for production-like setup)
+
+### Quick Start with Docker Compose
+
+```bash
+# Clone the repository
+git clone https://github.com/xshopai/review-service.git
+cd review-service
+
+# Start MongoDB + service
+docker-compose up -d
+
+# Verify the service is healthy
+curl http://localhost:8010/health
+```
+
+### Local Development Setup
+
+<details>
+<summary><b>🔧 Without Dapr (Simple Setup)</b></summary>
+
+```bash
+# Install dependencies
+npm install
+
+# Start MongoDB
+docker-compose -f docker-compose.db.yml up -d
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Start the service
+npm run dev
+```
+
+📖 See [Local Development Guide](docs/LOCAL_DEVELOPMENT.md) for detailed instructions.
+
+</details>
+
+<details>
+<summary><b>⚡ With Dapr (Production-like)</b></summary>
+
+```bash
+# Ensure Dapr is initialized
+dapr init
+
+# Start with Dapr sidecar
+./run.sh       # Linux/Mac
+.\run.ps1      # Windows
+
+# Or manually
+dapr run \
+  --app-id review-service \
+  --app-port 8010 \
+  --dapr-http-port 3500 \
+  --resources-path .dapr/components \
+  --config .dapr/config.yaml \
+  -- npm start
+```
+
+> **Note:** All services now use the standard Dapr ports (3500 for HTTP, 50001 for gRPC).
+
+</details>
+
+---
+
+## 📚 Documentation
+
+| Document                                          | Description                                        |
+| :------------------------------------------------ | :------------------------------------------------- |
+| 📘 [Local Development](docs/LOCAL_DEVELOPMENT.md) | Step-by-step local setup without Dapr              |
+| ☁️ [Azure Container Apps](docs/ACA_DEPLOYMENT.md) | Deploy to serverless containers with built-in Dapr |
+
+**API Documentation**: See `src/routes/` for endpoint definitions and `tests/integration/` for API contract examples.
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run unit tests only
+npm run test:unit
+
+# Run integration tests
+npm run test:integration
+
+# Run E2E tests
+npm run test:e2e
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run with coverage report
+npm run test:coverage
+```
+
+### Test Coverage
+
+| Metric      | Status    |
+| :---------- | :-------- |
+| Unit Tests  | ✅ Jest   |
+| Integration | ✅ Jest   |
+| E2E Tests   | ✅ Jest   |
+| Linting     | ✅ ESLint |
+
+---
+
+## 🏗️ Project Structure
+
+```
+review-service/
+├── 📁 src/                       # Application source code
+│   ├── 📁 routes/                # Express route handlers
+│   ├── 📁 services/              # Business logic layer
+│   ├── 📁 repositories/          # Data access layer (MongoDB)
+│   ├── 📁 models/                # Mongoose models and schemas
+│   ├── 📁 middleware/            # Authentication, validation
+│   ├── 📁 events/                # Event publishing (RabbitMQ/Dapr)
+│   └── 📁 utils/                 # Helper functions
+├── 📁 tests/                     # Test suite
+│   ├── 📁 unit/                  # Unit tests
+│   ├── 📁 integration/           # Integration tests
+│   └── 📁 e2e/                   # End-to-end tests
+├── 📁 scripts/                   # Utility scripts
+├── 📁 docs/                      # Documentation
+├── 📁 .dapr/                     # Dapr configuration
+│   ├── 📁 components/            # Pub/sub, state store configs
+│   └── 📄 config.yaml            # Dapr runtime configuration
+├── 📄 docker-compose.yml         # Full service stack
+├── 📄 docker-compose.db.yml      # MongoDB only
+├── 📄 Dockerfile                 # Production container image
+└── 📄 package.json               # Dependencies and scripts
+```
+
+---
+
+## 🔧 Technology Stack
+
+| Category          | Technology                                 |
+| :---------------- | :----------------------------------------- |
+| 🟢 Runtime        | Node.js 20+ (JavaScript ESM)               |
+| 🌐 Framework      | Express 4.18                               |
+| 🗄️ Database       | MongoDB 8.0+ with Mongoose 7.5             |
+| 📨 Messaging      | Dapr Pub/Sub (RabbitMQ) + amqplib          |
+| 🔐 Authentication | JWT Tokens + Role-based access control     |
+| 🧪 Testing        | Jest with unit, integration & E2E tests    |
+| 📊 Observability  | OpenTelemetry + Winston structured logging |
+
+---
+
+## ⚡ Quick Reference
+
+```bash
+# 🐳 Docker Compose
+docker-compose up -d              # Start all services
+docker-compose down               # Stop all services
+docker-compose -f docker-compose.db.yml up -d  # MongoDB only
+
+# 🔧 Local Development
+npm run dev                       # Start with hot reload
+npm start                         # Production mode
+
+# ⚡ Dapr Development
+./run.sh                          # Linux/Mac
+.\run.ps1                         # Windows
+
+# 🧪 Testing
+npm test                          # Run all tests
+npm run test:coverage             # With coverage report
+npm run test:watch                # Watch mode
+
+# 🔍 Health Check
+curl http://localhost:8010/health
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. **Fork** the repository
+2. **Create** a feature branch
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Write** tests for your changes
+4. **Run** the test suite
+   ```bash
+   npm test && npm run lint
+   ```
+5. **Commit** your changes
+   ```bash
+   git commit -m 'feat: add amazing feature'
+   ```
+6. **Push** to your branch
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+7. **Open** a Pull Request
+
+Please ensure your PR:
+
+- ✅ Passes all existing tests
+- ✅ Includes tests for new functionality
+- ✅ Follows the existing code style
+- ✅ Updates documentation as needed
+
+---
+
+## 🆘 Support
+
+| Resource         | Link                                                                        |
+| :--------------- | :-------------------------------------------------------------------------- |
+| 🐛 Bug Reports   | [GitHub Issues](https://github.com/xshopai/review-service/issues)           |
+| 📖 Documentation | [docs/](docs/)                                                              |
+| 💬 Discussions   | [GitHub Discussions](https://github.com/xshopai/review-service/discussions) |
+
+---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE)
+This project is part of the **xshopai** e-commerce platform.
+Licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
-## 📞 Support
+---
 
-- **Issues**: [GitHub Issues](https://github.com/xshopai/review-service/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/xshopai/review-service/discussions)
-- **Documentation**: [docs/](docs/)
+<div align="center">
+
+**[⬆ Back to Top](#-review-service)**
+
+Made with ❤️ by the xshopai team
+
+</div>
