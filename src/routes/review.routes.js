@@ -18,11 +18,11 @@ const router = express.Router();
 router.get('/product/:productId', viewReviewLimiter, optionalAuth, getProductReviews);
 router.get('/:reviewId', viewReviewLimiter, optionalAuth, getReviewById);
 
-// Protected routes (require authentication)
-router.post('/', createReviewLimiter, authenticateUser, sanitizeReviewInput, createReview);
-router.put('/:reviewId', createReviewLimiter, authenticateUser, sanitizeReviewInput, updateReview);
+// Protected routes (require authentication, then rate limit by userId)
+router.post('/', authenticateUser, createReviewLimiter, sanitizeReviewInput, createReview);
+router.put('/:reviewId', authenticateUser, createReviewLimiter, sanitizeReviewInput, updateReview);
 router.delete('/:reviewId', authenticateUser, deleteReview);
-router.post('/:reviewId/vote', voteReviewLimiter, authenticateUser, voteOnReview);
+router.post('/:reviewId/vote', authenticateUser, voteReviewLimiter, voteOnReview);
 router.get('/user/my-reviews', viewReviewLimiter, authenticateUser, getUserReviews);
 
 export default router;

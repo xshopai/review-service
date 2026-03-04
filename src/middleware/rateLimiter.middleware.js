@@ -17,9 +17,15 @@ export const createReviewLimiter = rateLimit({
   store: new MemoryStore(),
   keyGenerator: (req) => req.user?.userId || req.ip,
   validate: false,
-  message: {
-    success: false,
-    error: 'Too many reviews created. Please try again later.',
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many reviews created. Please try again later.',
+        correlationId: req.correlationId,
+      },
+    });
   },
 });
 
@@ -35,9 +41,15 @@ export const voteReviewLimiter = rateLimit({
   store: new MemoryStore(),
   keyGenerator: (req) => req.user?.userId || req.ip,
   validate: false,
-  message: {
-    success: false,
-    error: 'Too many votes submitted. Please try again later.',
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many votes submitted. Please try again later.',
+        correlationId: req.correlationId,
+      },
+    });
   },
 });
 
@@ -53,8 +65,14 @@ export const viewReviewLimiter = rateLimit({
   store: new MemoryStore(),
   keyGenerator: (req) => req.ip,
   validate: false,
-  message: {
-    success: false,
-    error: 'Too many requests. Please try again later.',
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many requests. Please try again later.',
+        correlationId: req.correlationId,
+      },
+    });
   },
 });
